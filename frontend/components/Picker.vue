@@ -3,11 +3,7 @@
 <template>
   <div class="container-flex-col fw">
     <div class="loader" v-if="$data.pending">
-      <v-progress-circular
-        :size="50"
-        color="primary"
-        indeterminate
-      ></v-progress-circular>
+      <v-progress-circular :size="50" color="primary" indeterminate></v-progress-circular>
     </div>
     <div class="container-flex-col fw picker" v-if="!!$data.response">
       <v-sheet :theme="'dark'" :tag="'h2'"> Dota 2 picker </v-sheet>
@@ -18,33 +14,31 @@
             <v-col cols="12" md="6">
               <v-item v-slot="{ active, toggle }">
                 <v-card :theme="'dark'">
-                  <v-card-title text="Radiant" color="success"
-                    >Radiant</v-card-title
-                  >
-
+                  <v-badge class="fw" left :content="$data.response.score + ' %'" :value="$data.response.score > 0">
+                    <v-row class="fw" :style="{ height: '20px', padding: '0 20px' }">
+                      <v-card-title class="team-title" text="Radiant" color="success" :tag="'span'">Radiant
+                      </v-card-title>
+                    </v-row>
+                  </v-badge>
                   <div class="heroes">
-                    <v-img
-                      v-for="(hero, index) in request.radiant"
-                      :key="hero + index"
-                      :src="require(`~/assets/images/${hero}.jpg`)"
-                    />
+                    <v-img v-for="(hero, index) in $data.request.radiant"
+                      v-on:click="() => removeFromTeam('radiant', hero)" :key="hero + index"
+                      :src="require(`~/assets/images/${hero}.jpg`)" />
                   </div>
                 </v-card>
               </v-item>
             </v-col>
-
             <v-col cols="12" md="6">
               <v-item v-slot="{ active, toggle }">
                 <v-card :theme="'dark'">
-                  <v-card-title text="Radiant" color="success"
-                    >Dire</v-card-title
-                  >
+                  <v-badge right class="fw" :content="-$data.response.score + ' %'" :value="$data.response.score < 0">
+                    <v-row class="fw" :style="{ height: '20px', padding: '0 20px' }">
+                      <v-card-title class="team-title" text="Dire" color="success" :tag="'span'">Dire</v-card-title>
+                    </v-row>
+                  </v-badge>
                   <div class="heroes">
-                    <v-img
-                      v-for="(hero, index) in request.dire"
-                      :key="hero + index"
-                      :src="require(`~/assets/images/${hero}.jpg`)"
-                    />
+                    <v-img v-for="(hero, index) in $data.request.dire" v-on:click="() => removeFromTeam('dire', hero)"
+                      :key="hero + index" :src="require(`~/assets/images/${hero}.jpg`)" />
                   </div>
                 </v-card>
               </v-item>
@@ -54,102 +48,36 @@
       </v-item-group>
 
       <div class="d-flex justify-center fw" :theme="'dark'">
-        <v-btn
-          color="success"
-          v-on:click="() => setMode('radiant')"
-          :active="mode === 'radiant'"
-          :class="{ 'disabled-button-radiant': mode !== 'radiant' }"
-          dark
-          >Radiant pick</v-btn
-        >
-        <v-btn
-          color="none"
-          v-on:click="() => setMode('ban')"
-          :active="mode === 'ban'"
-          :class="{ 'disabled-button-ban': mode !== 'ban' }"
-          class="btn-ban"
-          >Ban</v-btn
-        >
-        <v-btn
-          color="red"
-          v-on:click="() => setMode('dire')"
-          :active="mode === 'dire'"
-          :class="{ 'disabled-button-dire': mode !== 'dire' }"
-          >Dire pick</v-btn
-        >
+        <v-btn color="success" v-on:click="() => setMode('radiant')" :active="mode === 'radiant'"
+          :class="{ 'disabled-button-radiant': mode !== 'radiant' }" dark>Radiant pick</v-btn>
+        <v-btn color="none" v-on:click="() => setMode('ban')" :active="mode === 'ban'"
+          :class="{ 'disabled-button-ban': mode !== 'ban' }" class="btn-ban">Ban</v-btn>
+        <v-btn color="red" v-on:click="() => setMode('dire')" :active="mode === 'dire'"
+          :class="{ 'disabled-button-dire': mode !== 'dire' }">Dire pick</v-btn>
 
         <!-- <v-text-field :theme="'dark'" label="Search" v-model="search"></v-text-field> -->
       </div>
 
-      <v-card
-        v-if="mode === 'ban'"
-        :theme="'dark'"
-        class="d-flex justify-start fw flex-wrap"
-        style="gap: 5px; padding: 10px 0px"
-      >
-        <v-hover v-for="item in allHeroes" :key="item" class="pointer">
-          <v-img
-            :src="require(`~/assets/images/${item}.jpg`)"
-            class="all-heroes-image pointer"
-            v-on:click="() => toggleBanHero(item)"
-            :class="{
-              banned: bans.includes(item),
-              'radiant-pick': request.radiant.includes(item),
-              'dire-pick': request.dire.includes(item),
-            }"
-          />
+      <v-card v-if="$data.heroes" :theme="'dark'" class="d-flex justify-center fw flex-wrap"
+        style="gap: 5px; padding: 10px 0px">
+        <v-hover v-for="item in $data.heroes" :key="item" class="pointer">
+          <v-col :style="{ padding: 0 }" :md="1">
+            <v-img :src="require(`~/assets/images/${item}.jpg`)" class="all-heroes-image pointer"
+              v-on:click="() => onHeroClick(item)" :class="{
+                banned: bans.includes(item),
+                'radiant-pick': request.radiant.includes(item),
+                'dire-pick': request.dire.includes(item),
+              }" />
+          </v-col>
         </v-hover>
       </v-card>
 
-      <v-card
-        v-if="mode === 'radiant' && !!response.radiant"
-        :theme="'dark'"
-        class="d-flex justify-start fw flex-wrap"
-        style="gap: 5px; padding: 10px 0px"
-      >
-        <v-hover
-          v-for="item in response.radiant"
-          :key="item[0]"
-          class="pointer"
-        >
-          <v-img
-            :src="require(`~/assets/images/${item[0]}.jpg`)"
-            class="all-heroes-image pointer"
-            v-on:click="() => addHeroToTeam('radiant', item[0])"
-            :class="{
-              banned: bans.includes(item[0]),
-              'radiant-pick': request.radiant.includes(item[0]),
-              'dire-pick': request.dire.includes(item[0]),
-            }"
-          />
-        </v-hover>
-      </v-card>
-
-      <v-card
-        v-if="mode === 'dire' && !!response.dire"
-        :theme="'dark'"
-        class="d-flex justify-start fw flex-wrap"
-        style="gap: 5px; padding: 10px 0px"
-      >
-        <v-hover v-for="item in response.dire" :key="item[0]" class="pointer">
-          <v-img
-            :src="require(`~/assets/images/${item[0]}.jpg`)"
-            class="all-heroes-image pointer"
-            v-on:click="() => addHeroToTeam('dire', item[0])"
-            :class="{
-              banned: bans.includes(item[0]),
-              'dire-pick': request.dire.includes(item[0]),
-              'radiant-pick': request.radiant.includes(item[0]),
-            }"
-          />
-        </v-hover>
-      </v-card>
     </div>
   </div>
 </template>
 
 <script lang='ts'>
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import { HeroesRateRequest, HeroesRateResponse } from "../types";
 import { banNumbers } from "../api/banNumbers";
 import { AxiosResponse } from "axios";
@@ -161,6 +89,19 @@ export default defineComponent({
   methods: {
     setMode(mode: Modes) {
       this.mode = mode;
+      this.getHeroList();
+    },
+    filterHeroes() {
+      return this.heroes.filter(el => !this.request.dire.includes(el) && !this.request.radiant.includes(el))
+    },
+    onHeroClick(hero: number) {
+      if (this.mode === 'ban') {
+        this.toggleBanHero(hero)
+      } else if (this.mode === 'radiant') {
+        this.addHeroToTeam('radiant', hero)
+      } else if (this.mode === 'dire') {
+        this.addHeroToTeam('dire', hero)
+      }
     },
     addHeroToTeam(team: Teams, n: number) {
       const targetTeam =
@@ -176,6 +117,12 @@ export default defineComponent({
         if (firstZeroIndex >= 0) {
           targetTeam[firstZeroIndex] = n;
           this.fetchHeroes();
+          if (team === 'radiant') {
+            this.$data.request.radiant = [...targetTeam]
+          } else {
+            this.$data.request.dire = [...targetTeam]
+          }
+
         }
       } else {
         this.removeFromTeam(team, n);
@@ -197,28 +144,77 @@ export default defineComponent({
         this.bans = this.bans.filter((el) => el !== n);
       }
     },
+    getHeroList() {
+      let heroList = [] as number[];
+      if (this.mode === 'dire') {
+        if (this.response.dire.length) {
+          console.log(this.response.dire.length)
+          heroList = this.response.dire.map(([hero, rating]) => {
+            return hero
+          }).filter(el => !this.request.dire.includes(el) && !this.request.radiant.includes(el))
+        } else {
+          heroList = this.heroes.filter(el => {
+          return !this.request.dire.includes(el) && !this.request.radiant.includes(el)
+        })
+        }
+      };
+
+      if (this.mode === 'radiant') {
+        if (this.response.radiant.length) {
+          heroList = this.response.radiant.map(([hero, rating]) => {
+            return hero
+          }).filter(el => !this.request.radiant.includes(el) && !this.request.radiant.includes(el));
+        } else {
+          heroList = this.heroes.filter(el => {
+          return !this.request.dire.includes(el) && !this.request.radiant.includes(el)
+        })
+        }
+      };
+
+      if (this.mode === 'ban') {
+        heroList = this.heroes.filter(el => {
+          return !this.request.dire.includes(el) && !this.request.radiant.includes(el)
+        })
+      }
+
+     this.heroes = heroList;
+    },
     fetchHeroes() {
       this.pending = true;
       this.$axios.post('/picker', this.$data.request).then((res) => {
 
-          if (res.data) {
-            const data = res.data as HeroesRateResponse;
-            console.log(`data`);
-            console.log(data)
+        if (res.data) {
+          const data = res.data as HeroesRateResponse;
+          if (data.radiant.length) {
             this.$data.response.radiant = data.radiant.sort(
               (a, b) => b[1] - a[1]
             );
+          } else {
+            this.$data.response.radiant = [] as any[];
+          }
+          if (data.dire.length) {
             this.$data.response.dire = data.dire.sort(
               (a, b) => b[1] - a[1]
             );
-            this.$data.response.score = data.score;
+          } else {
+            this.$data.response.dire = [] as any[];
           }
-        })
-        .finally(() => (this.$data.pending = false));
+
+          this.$data.response.score = Math.round(100 * data.score / 2);
+        }
+      })
+        .finally(() => {
+          (this.$data.pending = false)
+          this.getHeroList();
+        });
     },
+  },
+  updated() {
+
   },
   mounted() {
     this.fetchHeroes();
+
   },
   name: "picker",
 
@@ -227,7 +223,7 @@ export default defineComponent({
       pending: true,
       bans: [] as number[],
       mode: "radiant" as "radiant" | "dire" | "ban",
-      allHeroes: new Array(121)
+      heroes: new Array(121)
         .fill(0)
         .map((_, idx) => idx + 1)
         .filter((el) => !banNumbers.includes(el)),
@@ -336,5 +332,11 @@ export default defineComponent({
 .dire-pick::after {
   background-color: #e53935;
   opacity: 0.7;
+}
+
+.team-title {
+  font-size: 12px;
+  line-height: 12px;
+  padding: 5px;
 }
 </style>

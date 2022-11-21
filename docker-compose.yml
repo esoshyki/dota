@@ -3,7 +3,6 @@ services:
   dota-server:
     build:
       context: ./backend/
-      dockerfile: Dockerfile
     container_name: dota-backend
     ports:
       - 4000:4000
@@ -13,6 +12,5 @@ services:
     image: nuxt_dev
     build:
       context: ./frontend/
-      dockerfile: Dockerfile
     ports:
       - 3000:3000
